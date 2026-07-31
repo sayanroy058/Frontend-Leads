@@ -4,12 +4,8 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  HeadContent,
-  Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
 
-import appCss from "../styles.css?url";
 import { ThemeProvider } from "../lib/theme";
 import { AuthProvider } from "../lib/auth-client";
 import { Toaster } from "@/components/ui/sonner";
@@ -59,45 +55,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Leadflow — AI Lead Management" },
-      { name: "description", content: "Upload leads, chat with AI about them, send personalized emails & WhatsApp messages, generate creatives, and let an AI agent call them." },
-      { property: "og:title", content: "Leadflow — AI Lead Management" },
-      { name: "twitter:title", content: "Leadflow — AI Lead Management" },
-      { property: "og:description", content: "Upload leads, chat with AI about them, send personalized emails & WhatsApp messages, generate creatives, and let an AI agent call them." },
-      { name: "twitter:description", content: "Upload leads, chat with AI about them, send personalized emails & WhatsApp messages, generate creatives, and let an AI agent call them." },
-      { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:type", content: "website" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" },
-    ],
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
-
-function RootShell({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();

@@ -39,6 +39,8 @@ function AppLayout() {
     );
   }
 
+  if (!user) return null;
+
   async function signOut() {
     await logout();
     navigate({ to: "/auth", replace: true });
