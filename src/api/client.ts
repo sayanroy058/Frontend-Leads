@@ -1,4 +1,4 @@
-const API_BASE = "/api";
+const API_BASE = "http://gold-alpaca-349507.hostingersite.com/api";
 
 function getToken(): string | null {
   try { return localStorage.getItem("auth_token"); } catch { return null; }
