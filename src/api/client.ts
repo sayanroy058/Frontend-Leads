@@ -1,4 +1,6 @@
-const API_BASE = "https://gold-alpaca-349507.hostingersite.com/api";
+// Defaults to the deployed backend on Vercel. Override per environment with
+// VITE_API_URL (e.g. "/api" in dev to go through the Vite proxy to localhost:3001).
+const API_BASE: string = import.meta.env.VITE_API_URL ?? "https://backend-leads.vercel.app/api";
 
 function getToken(): string | null {
   try { return localStorage.getItem("auth_token"); } catch { return null; }
