@@ -152,6 +152,17 @@ function AuthPage() {
               {mode === "login" ? "Create an account" : "Sign in"}
             </button>
           </div>
+
+          {mode === "login" ? (
+            <div className="mt-6 rounded-xl border border-dashed border-border bg-muted/50 px-4 py-3 text-center">
+              <p className="text-xs font-medium text-muted-foreground">Demo account</p>
+              <p className="mt-1 text-xs text-foreground/80">
+                <span className="font-medium">testuser@gmail.com</span>{" "}
+                <span className="text-muted-foreground">/</span>{" "}
+                <span className="font-medium">Str0ng!P9a</span>
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
