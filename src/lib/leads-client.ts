@@ -109,7 +109,7 @@ export function rowsToLeads(rows: Record<string, string>[]): Partial<Lead>[] {
       name, email: pick(r, EMAIL_KEYS) || null, phone: pick(r, PHONE_KEYS) || null,
       company: pick(r, COMPANY_KEYS) || null, city: pick(r, CITY_KEYS) || null,
       source: (pick(r, SOURCE_KEYS) || "import").toLowerCase(), notes: pick(r, NOTES_KEYS) || null,
-      status: "new" as LeadStatus, score: 50,
+      status: "new" as LeadStatus, score: 0,
     } as Partial<Lead>;
   }).filter(Boolean) as Partial<Lead>[];
 }

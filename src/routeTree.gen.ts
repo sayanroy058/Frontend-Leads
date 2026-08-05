@@ -18,6 +18,7 @@ import { Route as AppChatRouteImport } from './routes/app.chat'
 import { Route as AppEmailRouteImport } from './routes/app.email'
 import { Route as AppMessagesRouteImport } from './routes/app.messages'
 import { Route as AppStudioRouteImport } from './routes/app.studio'
+import { Route as AppLeadsIndexRouteImport } from './routes/app.leads.index'
 import { Route as AppLeadsLeadIdRouteImport } from './routes/app.leads.$leadId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -65,6 +66,11 @@ const AppStudioRoute = AppStudioRouteImport.update({
   path: '/studio',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLeadsIndexRoute = AppLeadsIndexRouteImport.update({
+  id: '/leads/',
+  path: '/leads/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLeadsLeadIdRoute = AppLeadsLeadIdRouteImport.update({
   id: '/leads/$leadId',
   path: '/leads/$leadId',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/app/studio': typeof AppStudioRoute
   '/app/': typeof AppIndexRoute
   '/app/leads/$leadId': typeof AppLeadsLeadIdRoute
+  '/app/leads/': typeof AppLeadsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/app/studio': typeof AppStudioRoute
   '/app': typeof AppIndexRoute
   '/app/leads/$leadId': typeof AppLeadsLeadIdRoute
+  '/app/leads': typeof AppLeadsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/app/studio': typeof AppStudioRoute
   '/app/': typeof AppIndexRoute
   '/app/leads/$leadId': typeof AppLeadsLeadIdRoute
+  '/app/leads/': typeof AppLeadsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/app/studio'
     | '/app/'
     | '/app/leads/$leadId'
+    | '/app/leads/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/app/studio'
     | '/app'
     | '/app/leads/$leadId'
+    | '/app/leads'
   id:
     | '__root__'
     | '/'
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/app/studio'
     | '/app/'
     | '/app/leads/$leadId'
+    | '/app/leads/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -216,6 +228,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppStudioRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/leads/': {
+      id: '/app/leads/'
+      path: '/leads'
+      fullPath: '/app/leads/'
+      preLoaderRoute: typeof AppLeadsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/leads/$leadId': {
       id: '/app/leads/$leadId'
       path: '/leads/$leadId'
@@ -234,6 +253,7 @@ interface AppRouteChildren {
   AppStudioRoute: typeof AppStudioRoute
   AppIndexRoute: typeof AppIndexRoute
   AppLeadsLeadIdRoute: typeof AppLeadsLeadIdRoute
+  AppLeadsIndexRoute: typeof AppLeadsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -244,6 +264,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppStudioRoute: AppStudioRoute,
   AppIndexRoute: AppIndexRoute,
   AppLeadsLeadIdRoute: AppLeadsLeadIdRoute,
+  AppLeadsIndexRoute: AppLeadsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

@@ -188,8 +188,14 @@ function LeadDetail() {
             <Field label="Source">
               <input className={inputCls} value={lead.source ?? ""} onChange={(e) => set({ source: e.target.value || null })} />
             </Field>
-            <Field label="Score (0–100)">
-              <input type="number" min={0} max={100} className={inputCls} value={lead.score} onChange={(e) => set({ score: Number(e.target.value) })} />
+            <Field label="Score (auto)">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full gradient-brand" style={{ width: `${lead.score}%` }} />
+                </div>
+                <span className="text-sm font-semibold">{lead.score}</span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">Auto-scored from how many lead fields are filled.</p>
             </Field>
             <Field label="Value (USD)">
               <input type="number" min={0} step="any" className={inputCls} value={lead.value ?? ""} onChange={(e) => set({ value: e.target.value === "" ? null : Number(e.target.value) })} />

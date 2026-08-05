@@ -21,10 +21,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) { setIsLoading(false); return; }
-    api.getMe()
-      .then((r) => setUser(r.user))
-      .catch(() => localStorage.removeItem(TOKEN_KEY))
-      .finally(() => setIsLoading(false));
+
+    let cancelled = false;
+    (async () => {
+      // Retry briefly — the backend may still be starting (cold start). A
+      // transient/network error must NOT delete the token, otherwise the user
+      // is logged out permanently every time the code is re-run.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const r = await api.getMe();
+          if (cancelled) return;
+          setUser(r.user);
+          // Only clear the token if the server explicitly reports it invalid.
+          if (!r.user) localStorage.removeItem(TOKEN_KEY);
+          break;
+        } catch {
+          if (cancelled) return;
+          if (attempt < 2) await new Promise((res) => setTimeout(res, 800));
+        }
+      }
+      if (!cancelled) setIsLoading(false);
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

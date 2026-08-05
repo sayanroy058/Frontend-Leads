@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { LayoutDashboard, Bot, Mail, MessageCircle, PhoneCall, ImageIcon, Sparkles, Search, Bell, Sun, Moon, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, Bot, Mail, MessageCircle, PhoneCall, ImageIcon, Sparkles, Search, Bell, Sun, Moon, LogOut, Loader2, Users } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-client";
 
@@ -11,6 +11,7 @@ export const Route = createFileRoute("/app")({
 
 const nav: { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
   { to: "/app", label: "Leads", icon: LayoutDashboard, exact: true },
+  { to: "/app/leads", label: "All Leads", icon: Users },
   { to: "/app/chat", label: "AI Chat", icon: Bot },
   { to: "/app/email", label: "Email Studio", icon: Mail },
   { to: "/app/messages", label: "WhatsApp", icon: MessageCircle },

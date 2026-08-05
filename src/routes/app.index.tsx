@@ -211,8 +211,8 @@ function LeadsDashboard() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
             <div className="flex items-center gap-2">
               <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
-              <div className="text-sm font-semibold">All leads</div>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{filtered.length}</span>
+              <div className="text-sm font-semibold">Recent leads</div>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{Math.min(filtered.length, 6)}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -230,6 +230,12 @@ function LeadsDashboard() {
               <button className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-1.5 text-xs hover:bg-accent">
                 <Filter className="h-3.5 w-3.5" /> Filter
               </button>
+              <Link
+                to="/app/leads"
+                className="inline-flex items-center gap-1.5 rounded-lg gradient-brand px-2.5 py-1.5 text-xs font-medium text-white shadow-glow"
+              >
+                <Eye className="h-3.5 w-3.5" /> View all leads
+              </Link>
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -246,7 +252,7 @@ function LeadsDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.slice(0, 14).map((l) => (
+                {filtered.slice(0, 6).map((l) => (
                   <tr key={l.id} className="border-t border-border hover:bg-muted/30">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -331,7 +337,7 @@ function AddLeadModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", company: "", city: "",
-    source: "manual", status: "new" as LeadStatus, score: "50", value: "", notes: "",
+    source: "manual", status: "new" as LeadStatus, value: "", notes: "",
   });
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
   const inputCls = "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
@@ -348,7 +354,6 @@ function AddLeadModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
       city: form.city.trim() || null,
       source: form.source.trim() || "manual",
       status: form.status,
-      score: Math.min(100, Math.max(0, Number(form.score) || 50)),
       value: form.value.trim() === "" ? null : Number(form.value),
       notes: form.notes.trim() || null,
     }]);
@@ -396,10 +401,6 @@ function AddLeadModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
             <label className="block">
               <span className="text-xs font-medium text-muted-foreground">Source</span>
               <input className={inputCls} value={form.source} onChange={(e) => set({ source: e.target.value })} />
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium text-muted-foreground">Score (0–100)</span>
-              <input type="number" min={0} max={100} className={inputCls} value={form.score} onChange={(e) => set({ score: e.target.value })} />
             </label>
             <label className="block sm:col-span-2">
               <span className="text-xs font-medium text-muted-foreground">Value (USD)</span>
