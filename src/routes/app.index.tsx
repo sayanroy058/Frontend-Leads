@@ -1,8 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import {
   Upload, Users, Sparkles, FileSpreadsheet,
-  Filter, MoreHorizontal, Search, Mail, MessageCircle, PhoneCall, CheckCircle2,
+  Filter, MoreHorizontal, Search, Mail, MessageCircle, PhoneCall, CheckCircle2, Eye,
+  Plus, UserPlus, X, Loader2,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell } from "recharts";
 import { toast } from "sonner";
@@ -40,6 +41,7 @@ function LeadsDashboard() {
   const { counts, activity } = useActivity();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | LeadStatus>("all");
+  const [adding, setAdding] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
@@ -108,6 +110,12 @@ function LeadsDashboard() {
           <p className="mt-1 text-sm text-muted-foreground">A live snapshot of your pipeline, AI activity and delivery status.</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAdding(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-accent"
+          >
+            <UserPlus className="h-4 w-4" /> Add lead
+          </button>
           <button
             onClick={() => fileRef.current?.click()}
             className="inline-flex items-center gap-2 rounded-xl gradient-brand px-4 py-2 text-sm font-medium text-white shadow-glow"
@@ -266,7 +274,10 @@ function LeadsDashboard() {
                     <td className="px-4 py-3 text-sm">${Number(l.value ?? 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs capitalize text-muted-foreground">{l.source}</td>
                     <td className="px-4 py-3 text-right">
-                      <button className="grid h-7 w-7 place-items-center rounded-md hover:bg-accent"><MoreHorizontal className="h-4 w-4" /></button>
+                      <Link to="/app/leads/$leadId" params={{ leadId: l.id }} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-accent">
+                        <Eye className="h-3.5 w-3.5" /> View
+                      </Link>
+                      <button className="ml-1 grid h-7 w-7 place-items-center rounded-md hover:bg-accent"><MoreHorizontal className="h-4 w-4" /></button>
                     </td>
                   </tr>
                 ))}
@@ -301,6 +312,110 @@ function LeadsDashboard() {
               );
             })}
           </div>
+        </div>
+      </div>
+
+      {adding && (
+        <AddLeadModal
+          onClose={() => setAdding(false)}
+          onSaved={() => { setAdding(false); reload(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+const statusOptions: LeadStatus[] = ["new", "contacted", "qualified", "booked", "lost"];
+
+function AddLeadModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState({
+    name: "", email: "", phone: "", company: "", city: "",
+    source: "manual", status: "new" as LeadStatus, score: "50", value: "", notes: "",
+  });
+  const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+  const inputCls = "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring";
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) { toast.error("Name is required"); return; }
+    setBusy(true);
+    const { error } = await insertLeadsBulk([{
+      name: form.name.trim(),
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      company: form.company.trim() || null,
+      city: form.city.trim() || null,
+      source: form.source.trim() || "manual",
+      status: form.status,
+      score: Math.min(100, Math.max(0, Number(form.score) || 50)),
+      value: form.value.trim() === "" ? null : Number(form.value),
+      notes: form.notes.trim() || null,
+    }]);
+    setBusy(false);
+    if (error) { toast.error("Couldn't add lead", { description: error.message }); return; }
+    toast.success("Lead added");
+    onSaved();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/30 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="grid max-h-[90vh] w-full max-w-lg grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-border bg-card shadow-elegant" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          <div className="flex items-center gap-2"><UserPlus className="h-4 w-4" /><div className="text-sm font-semibold">Add lead manually</div></div>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent"><X className="h-4 w-4" /></button>
+        </div>
+        <form id="add-lead-form" onSubmit={onSubmit} className="overflow-y-auto p-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-xs font-medium text-muted-foreground">Full name *</span>
+              <input className={inputCls} value={form.name} onChange={(e) => set({ name: e.target.value })} required />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-muted-foreground">Status</span>
+              <select className={inputCls} value={form.status} onChange={(e) => set({ status: e.target.value as LeadStatus })}>
+                {statusOptions.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-muted-foreground">Email</span>
+              <input type="email" className={inputCls} value={form.email} onChange={(e) => set({ email: e.target.value })} />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-muted-foreground">Phone</span>
+              <input className={inputCls} value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-muted-foreground">Company</span>
+              <input className={inputCls} value={form.company} onChange={(e) => set({ company: e.target.value })} />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-muted-foreground">City</span>
+              <input className={inputCls} value={form.city} onChange={(e) => set({ city: e.target.value })} />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-muted-foreground">Source</span>
+              <input className={inputCls} value={form.source} onChange={(e) => set({ source: e.target.value })} />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-muted-foreground">Score (0–100)</span>
+              <input type="number" min={0} max={100} className={inputCls} value={form.score} onChange={(e) => set({ score: e.target.value })} />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="text-xs font-medium text-muted-foreground">Value (USD)</span>
+              <input type="number" min={0} step="any" className={inputCls} value={form.value} onChange={(e) => set({ value: e.target.value })} />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="text-xs font-medium text-muted-foreground">Notes</span>
+              <textarea rows={3} className={inputCls} value={form.notes} onChange={(e) => set({ notes: e.target.value })} />
+            </label>
+          </div>
+        </form>
+        <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
+          <button onClick={onClose} className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-accent">Cancel</button>
+          <button type="submit" form="add-lead-form" disabled={busy} className="inline-flex items-center gap-2 rounded-lg gradient-brand px-4 py-2 text-sm font-medium text-white shadow-glow disabled:opacity-60">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Add lead
+          </button>
         </div>
       </div>
     </div>

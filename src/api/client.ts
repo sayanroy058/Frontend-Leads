@@ -36,6 +36,9 @@ export const api = {
   getLeads: () => request<any[]>("GET", "/leads"),
   insertLeadsBulk: (data: any[]) => request<any[]>("POST", "/leads/bulk", data),
   updateLeadStatus: (id: string, status: string) => request("POST", "/leads/status", { id, status }),
+  getLead: (id: string) => request<any>("GET", `/leads/${id}`),
+  updateLead: (id: string, data: any) => request<any>("PUT", `/leads/${id}`, data),
+  deleteLead: (id: string) => request<any>("DELETE", `/leads/${id}`),
   getActivityCounts: () => request<{ emails: number; whatsapps: number; calls: number; appts: number }>("GET", "/leads/activity/counts"),
   getActivityFeed: () => request<any[]>("GET", "/leads/activity/feed"),
 
@@ -67,4 +70,5 @@ export const api = {
   aiComposeEmail: (data: { lead: any; tone: string; goal: string; senderName?: string }) => request<{ subject: string; body: string }>("POST", "/ai/email", data),
   aiComposeWhatsapp: (data: { lead: any; intent: string }) => request<{ body: string }>("POST", "/ai/whatsapp", data),
   aiCallScript: (data: { lead: any; goal: string }) => request<any>("POST", "/ai/call", data),
+  aiImage: (data: { prompt: string; size?: string }) => request<{ image: string }>("POST", "/ai/image", data),
 };

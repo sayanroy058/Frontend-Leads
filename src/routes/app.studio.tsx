@@ -1,18 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Image as ImageIcon, Sparkles, Download, Share2, Wand2, Plus, X, Loader2, CheckCircle2, Clock } from "lucide-react";
+import { Image as ImageIcon, Sparkles, Download, Share2, Wand2, Plus, X, Loader2, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { api } from "@/api/client";
 
 export const Route = createFileRoute("/app/studio")({
   component: Studio,
 });
 
 const presets = [
-  { id: "poster", label: "Poster", ratio: "3:4", w: 600, h: 800 },
-  { id: "banner", label: "Web banner", ratio: "16:9", w: 800, h: 450 },
-  { id: "story", label: "IG Story", ratio: "9:16", w: 450, h: 800 },
-  { id: "square", label: "IG Post", ratio: "1:1", w: 600, h: 600 },
-  { id: "ad", label: "Ad creative", ratio: "4:5", w: 600, h: 750 },
+  { id: "poster", label: "Poster", ratio: "3:4", w: 600, h: 800, size: "1024x1536" },
+  { id: "banner", label: "Web banner", ratio: "16:9", w: 800, h: 450, size: "1536x1024" },
+  { id: "story", label: "IG Story", ratio: "9:16", w: 450, h: 800, size: "1024x1536" },
+  { id: "square", label: "IG Post", ratio: "1:1", w: 600, h: 600, size: "1024x1024" },
+  { id: "ad", label: "Ad creative", ratio: "4:5", w: 600, h: 750, size: "1024x1536" },
 ];
 
 type Stage = "queued" | "generating" | "ready";
@@ -23,6 +24,8 @@ interface Job {
   stage: Stage;
   createdAt: number;
   swatch: string;
+  imageUrl?: string;
+  error?: string;
 }
 
 const swatches = [
@@ -34,14 +37,52 @@ const swatches = [
   "linear-gradient(135deg,#67e8f9,#c084fc)",
 ];
 
+function fileBase(id: string) {
+  return `leadflow-${id}-${Date.now()}`;
+}
+
+async function downloadImage(url: string, filename: string) {
+  try {
+    if (url.startsWith("data:")) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      const blob = await (await fetch(url)).blob();
+      const obj = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = obj;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(obj);
+    }
+    toast.success("Downloaded", { description: filename });
+  } catch {
+    window.open(url, "_blank");
+  }
+}
+
 function Studio() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [composing, setComposing] = useState(false);
 
-  function enqueue(j: Job) {
-    setJobs((prev) => [j, ...prev]);
-    setTimeout(() => setJobs((p) => p.map((x) => x.id === j.id ? { ...x, stage: "generating" } : x)), 500);
-    setTimeout(() => setJobs((p) => p.map((x) => x.id === j.id ? { ...x, stage: "ready" } : x)), 2500 + Math.random() * 1500);
+  async function enqueue(job: Job) {
+    setJobs((prev) => [job, ...prev]);
+    await new Promise((r) => setTimeout(r, 400));
+    setJobs((p) => p.map((x) => (x.id === job.id ? { ...x, stage: "generating" } : x)));
+    try {
+      const res = await api.aiImage({ prompt: job.prompt, size: job.preset.size });
+      setJobs((p) => p.map((x) => (x.id === job.id ? { ...x, stage: "ready", imageUrl: res.image, error: undefined } : x)));
+    } catch (e) {
+      const msg = (e as Error).message;
+      setJobs((p) => p.map((x) => (x.id === job.id ? { ...x, stage: "ready", imageUrl: undefined, error: msg } : x)));
+      toast.error("Generation failed", { description: msg });
+    }
   }
 
   const lanes: { key: Stage; label: string; tint: string; Icon: typeof Sparkles }[] = [
@@ -55,7 +96,7 @@ function Studio() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Creative Studio</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Generate posters, banners, stories and ad creatives. Download or share with one click.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Generate posters, banners, stories and ad creatives with GPT Image 2. Download or share with one click.</p>
         </div>
         <button onClick={() => setComposing(true)} className="inline-flex items-center gap-2 rounded-xl gradient-brand px-4 py-2 text-sm font-medium text-white shadow-glow">
           <Plus className="h-4 w-4" /> New creative
@@ -79,32 +120,54 @@ function Studio() {
               <div className="space-y-3">
                 {items.map((j) => (
                   <div key={j.id} className="overflow-hidden rounded-xl border border-border bg-background">
-                    <div
-                      className="relative grid place-items-center text-white"
-                      style={{
-                        background: j.swatch,
-                        aspectRatio: `${j.preset.w}/${j.preset.h}`,
-                      }}
-                    >
-                      <div className="px-4 text-center text-sm font-semibold leading-snug drop-shadow">
-                        {j.prompt.slice(0, 60)}
-                      </div>
+                    <div className="relative" style={{ aspectRatio: `${j.preset.w}/${j.preset.h}` }}>
+                      {j.imageUrl ? (
+                        <img src={j.imageUrl} alt={j.prompt} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="relative grid h-full w-full place-items-center text-white" style={{ background: j.swatch }}>
+                          <div className="px-4 text-center text-sm font-semibold leading-snug drop-shadow">{j.prompt.slice(0, 60)}</div>
+                        </div>
+                      )}
                       {j.stage === "generating" && (
                         <div className="absolute inset-0 grid place-items-center bg-foreground/30 backdrop-blur-sm">
                           <Loader2 className="h-6 w-6 animate-spin text-white" />
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center justify-between p-3">
-                      <div className="text-xs">
-                        <div className="font-medium">{j.preset.label}</div>
-                        <div className="text-muted-foreground">{j.preset.ratio}</div>
+                    <div className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs">
+                          <div className="font-medium">{j.preset.label}</div>
+                          <div className="text-muted-foreground">{j.preset.ratio}</div>
+                        </div>
+                        {j.stage === "queued" && <span className="text-xs text-muted-foreground">Queued…</span>}
+                        {j.stage === "generating" && <span className="text-xs text-muted-foreground">Generating…</span>}
+                        {j.stage === "ready" && j.imageUrl && (
+                          <span className="inline-flex items-center gap-1 text-xs text-success"><CheckCircle2 className="h-3.5 w-3.5" /> Ready</span>
+                        )}
                       </div>
-                      {j.stage === "ready" && (
-                        <div className="flex gap-1.5">
-                          <button onClick={() => toast.success("Downloaded")} className="grid h-7 w-7 place-items-center rounded-md border border-border hover:bg-accent"><Download className="h-3.5 w-3.5" /></button>
-                          <button onClick={() => toast.success("Share link copied")} className="grid h-7 w-7 place-items-center rounded-md border border-border hover:bg-accent"><Share2 className="h-3.5 w-3.5" /></button>
-                          <button onClick={() => enqueue({ ...j, id: crypto.randomUUID(), stage: "queued", swatch: swatches[Math.floor(Math.random()*swatches.length)] })} className="grid h-7 w-7 place-items-center rounded-md border border-border hover:bg-accent"><Wand2 className="h-3.5 w-3.5" /></button>
+
+                      {j.stage === "ready" && j.error && (
+                        <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+                          <div className="flex items-center gap-1.5 font-medium"><AlertCircle className="h-3.5 w-3.5" /> Generation failed</div>
+                          <p className="mt-1 break-words text-destructive/80">{j.error}</p>
+                          <button onClick={() => enqueue({ ...j, id: crypto.randomUUID(), stage: "queued", imageUrl: undefined, error: undefined })} className="mt-2 inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent"><Wand2 className="h-3 w-3" /> Retry</button>
+                        </div>
+                      )}
+
+                      {j.stage === "ready" && j.imageUrl && (
+                        <div className="mt-3 space-y-2">
+                          <div className="rounded-lg border border-border bg-muted/40 p-2 text-[11px] text-muted-foreground">
+                            <div className="truncate font-medium text-foreground/80">{fileBase(j.preset.id)}.png</div>
+                            <div>PNG · GPT Image 2</div>
+                          </div>
+                          <button onClick={() => downloadImage(j.imageUrl!, `${fileBase(j.preset.id)}.png`)} className="inline-flex w-full items-center justify-center gap-2 rounded-lg gradient-brand px-3 py-2 text-xs font-semibold text-white shadow-glow">
+                            <Download className="h-3.5 w-3.5" /> Download
+                          </button>
+                          <div className="flex gap-1.5">
+                            <button onClick={() => { navigator.clipboard?.writeText(j.imageUrl!); toast.success("Image data copied"); }} className="grid h-7 flex-1 place-items-center rounded-md border border-border hover:bg-accent"><Share2 className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => enqueue({ ...j, id: crypto.randomUUID(), stage: "queued", imageUrl: undefined, error: undefined })} className="grid h-7 flex-1 place-items-center rounded-md border border-border hover:bg-accent"><Wand2 className="h-3.5 w-3.5" /></button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -123,7 +186,7 @@ function Studio() {
         <Composer
           onClose={() => setComposing(false)}
           onSubmit={(prompt, preset) => {
-            enqueue({ id: crypto.randomUUID(), prompt, preset, stage: "queued", createdAt: Date.now(), swatch: swatches[Math.floor(Math.random()*swatches.length)] });
+            enqueue({ id: crypto.randomUUID(), prompt, preset, stage: "queued", createdAt: Date.now(), swatch: swatches[Math.floor(Math.random() * swatches.length)] });
             setComposing(false);
             toast.success("Creative queued");
           }}
