@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Mail, Sparkles, Send, Wand2, Loader2, Plus, X, CheckCircle2, Clock, Inbox, Eye } from "lucide-react";
+import { Mail, Sparkles, Send, Wand2, Loader2, Plus, X, CheckCircle2, Clock, Inbox, Eye, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/api/client";
 import { useLeads, updateLeadStatus, type Lead } from "@/lib/leads-client";
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/app/email")({
 const tones = ["Friendly", "Professional", "Direct", "Playful"] as const;
 const goals = ["Book a meeting", "Send a proposal", "Re-engage", "Share case study"] as const;
 
-type Status = "draft" | "queued" | "sent" | "delivered" | "opened" | "failed";
+type Status = "draft" | "queued" | "sent" | "delivered" | "opened" | "failed" | "received";
 
 interface EmailRow {
   id: string;
@@ -22,6 +22,9 @@ interface EmailRow {
   tone: string | null;
   goal: string | null;
   status: Status;
+  direction: "outbound" | "inbound" | null;
+  from_email: string | null;
+  to_email: string | null;
   sent_at: string | null;
   delivered_at: string | null;
   opened_at: string | null;
@@ -34,10 +37,28 @@ function EmailStudio() {
   const [composing, setComposing] = useState(false);
 
   async function refresh() {
+    try { await api.syncInbox(); } catch { /* AgentMail not configured — show local mail only */ }
     const data = await api.getEmails() as EmailRow[];
     if (data) setEmails(data);
   }
   useEffect(() => { refresh(); }, []);
+
+  const [sending, setSending] = useState<Set<string>>(new Set());
+  const received = useMemo(() => emails.filter((e) => e.direction === "inbound"), [emails]);
+
+  async function sendEmail(e: EmailRow) {
+    setSending((s) => new Set(s).add(e.id));
+    try {
+      await api.sendEmail(e.id);
+      if (e.lead_id) { await updateLeadStatus(e.lead_id, "contacted"); reloadLeads(); }
+      toast.success("Email sent from sayanazure@agentmail.to");
+    } catch (err) {
+      toast.error("Send failed", { description: (err as Error).message });
+    } finally {
+      setSending((s) => { const n = new Set(s); n.delete(e.id); return n; });
+      refresh();
+    }
+  }
 
   const byStatus = useMemo(() => {
     const groups: Record<string, EmailRow[]> = { draft: [], queued: [], sent: [], delivered: [], opened: [] };
@@ -68,6 +89,45 @@ function EmailStudio() {
         </button>
       </div>
 
+      <div className="rounded-2xl border border-border bg-card/70 p-4 shadow-soft">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-lg gradient-mint">
+              <Inbox className="h-3.5 w-3.5 text-foreground/80" />
+            </span>
+            <div className="text-sm font-semibold">Inbox</div>
+            <span className="text-xs text-muted-foreground">sayanazure@agentmail.to</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{received.length}</span>
+            <button onClick={refresh} className="grid h-7 w-7 place-items-center rounded-lg border border-border hover:bg-accent" title="Sync inbox">
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+        {received.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+            No incoming mail yet — replies to sent emails will appear here.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {received.map((e) => (
+              <div key={e.id} className="rounded-xl border border-border bg-background p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{e.subject || "(no subject)"}</div>
+                    <div className="truncate text-xs text-muted-foreground">from {e.from_email ?? "unknown"}</div>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] capitalize text-muted-foreground">received</span>
+                </div>
+                <div className="mt-2 line-clamp-3 text-xs text-muted-foreground">{e.body}</div>
+                <div className="mt-2 text-[11px] text-muted-foreground">{new Date(e.created_at).toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         {lanes.map(({ key, label, tint, Icon }) => (
           <div key={key} className="flex min-h-[280px] flex-col rounded-2xl border border-border bg-card/70 p-3 shadow-soft">
@@ -96,8 +156,9 @@ function EmailStudio() {
                     <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
                       <span>{new Date(e.created_at).toLocaleString()}</span>
                       {e.status === "draft" && (
-                        <button onClick={() => sendEmail(e, refresh, reloadLeads)} className="inline-flex items-center gap-1 rounded-md gradient-brand px-2 py-0.5 text-white">
-                          <Send className="h-3 w-3" /> Send
+                        <button onClick={() => sendEmail(e)} disabled={sending.has(e.id)} className="inline-flex items-center gap-1 rounded-md gradient-brand px-2 py-0.5 text-white disabled:opacity-60">
+                          {sending.has(e.id) ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                          {sending.has(e.id) ? "Sending" : "Send"}
                         </button>
                       )}
                     </div>
@@ -119,30 +180,6 @@ function EmailStudio() {
   );
 }
 
-async function sendEmail(e: EmailRow, refresh: () => void, reloadLeads: () => void) {
-  await api.updateEmailStatus({ id: e.id, status: "queued" });
-  refresh();
-  setTimeout(async () => {
-    const now = new Date().toISOString();
-    await api.updateEmailStatus({ id: e.id, status: "sent", sent_at: now });
-    refresh();
-    setTimeout(async () => {
-      await api.updateEmailStatus({ id: e.id, status: "delivered", delivered_at: new Date().toISOString() });
-      refresh();
-      if (Math.random() > 0.5) {
-        setTimeout(async () => {
-          await api.updateEmailStatus({ id: e.id, status: "opened", opened_at: new Date().toISOString() });
-          refresh();
-        }, 1800);
-      }
-    }, 1500);
-  }, 700);
-  if (e.lead_id) {
-    await updateLeadStatus(e.lead_id, "contacted");
-    reloadLeads();
-  }
-  toast.success("Email sending — delivery tracked on the dashboard");
-}
 
 function ComposeModal({ leads, onClose, onDone }: { leads: Lead[]; onClose: () => void; onDone: () => void }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());

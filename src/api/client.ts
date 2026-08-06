@@ -50,6 +50,8 @@ export const api = {
   getEmails: () => request<any[]>("GET", "/messages/emails"),
   insertEmails: (data: any[]) => request("POST", "/messages/emails", data),
   updateEmailStatus: (data: { id: string; status: string; sent_at?: string; delivered_at?: string; opened_at?: string }) => request("POST", "/messages/emails/status", data),
+  sendEmail: (id: string) => request<any>("POST", "/messages/emails/send", { id }),
+  syncInbox: () => request<{ synced: number; total: number }>("POST", "/messages/emails/sync"),
 
   // WhatsApp
   getWhatsapps: () => request<any[]>("GET", "/messages/whatsapps"),
