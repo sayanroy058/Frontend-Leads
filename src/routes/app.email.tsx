@@ -51,7 +51,7 @@ function EmailStudio() {
     try {
       await api.sendEmail(e.id);
       if (e.lead_id) { await updateLeadStatus(e.lead_id, "contacted"); reloadLeads(); }
-      toast.success("Email sent from sayanazure@agentmail.to");
+      toast.success("Email sent from leads-test@agentmail.to");
     } catch (err) {
       toast.error("Send failed", { description: (err as Error).message });
     } finally {
@@ -96,7 +96,7 @@ function EmailStudio() {
               <Inbox className="h-3.5 w-3.5 text-foreground/80" />
             </span>
             <div className="text-sm font-semibold">Inbox</div>
-            <span className="text-xs text-muted-foreground">sayanazure@agentmail.to</span>
+            <span className="text-xs text-muted-foreground">leads-test@agentmail.to</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{received.length}</span>
