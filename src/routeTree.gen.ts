@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppCallerRouteImport } from './routes/app.caller'
 import { Route as AppChatRouteImport } from './routes/app.chat'
+import { Route as AppConversationsRouteImport } from './routes/app.conversations'
 import { Route as AppEmailRouteImport } from './routes/app.email'
 import { Route as AppMessagesRouteImport } from './routes/app.messages'
 import { Route as AppStudioRouteImport } from './routes/app.studio'
@@ -51,6 +52,11 @@ const AppChatRoute = AppChatRouteImport.update({
   path: '/chat',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConversationsRoute = AppConversationsRouteImport.update({
+  id: '/conversations',
+  path: '/conversations',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEmailRoute = AppEmailRouteImport.update({
   id: '/email',
   path: '/email',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/app/caller': typeof AppCallerRoute
   '/app/chat': typeof AppChatRoute
+  '/app/conversations': typeof AppConversationsRoute
   '/app/email': typeof AppEmailRoute
   '/app/messages': typeof AppMessagesRoute
   '/app/studio': typeof AppStudioRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/app/caller': typeof AppCallerRoute
   '/app/chat': typeof AppChatRoute
+  '/app/conversations': typeof AppConversationsRoute
   '/app/email': typeof AppEmailRoute
   '/app/messages': typeof AppMessagesRoute
   '/app/studio': typeof AppStudioRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/app/caller': typeof AppCallerRoute
   '/app/chat': typeof AppChatRoute
+  '/app/conversations': typeof AppConversationsRoute
   '/app/email': typeof AppEmailRoute
   '/app/messages': typeof AppMessagesRoute
   '/app/studio': typeof AppStudioRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/caller'
     | '/app/chat'
+    | '/app/conversations'
     | '/app/email'
     | '/app/messages'
     | '/app/studio'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/caller'
     | '/app/chat'
+    | '/app/conversations'
     | '/app/email'
     | '/app/messages'
     | '/app/studio'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/app/caller'
     | '/app/chat'
+    | '/app/conversations'
     | '/app/email'
     | '/app/messages'
     | '/app/studio'
@@ -207,6 +219,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChatRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/conversations': {
+      id: '/app/conversations'
+      path: '/conversations'
+      fullPath: '/app/conversations'
+      preLoaderRoute: typeof AppConversationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/email': {
       id: '/app/email'
       path: '/email'
@@ -248,6 +267,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppCallerRoute: typeof AppCallerRoute
   AppChatRoute: typeof AppChatRoute
+  AppConversationsRoute: typeof AppConversationsRoute
   AppEmailRoute: typeof AppEmailRoute
   AppMessagesRoute: typeof AppMessagesRoute
   AppStudioRoute: typeof AppStudioRoute
@@ -259,6 +279,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppCallerRoute: AppCallerRoute,
   AppChatRoute: AppChatRoute,
+  AppConversationsRoute: AppConversationsRoute,
   AppEmailRoute: AppEmailRoute,
   AppMessagesRoute: AppMessagesRoute,
   AppStudioRoute: AppStudioRoute,

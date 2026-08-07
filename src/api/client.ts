@@ -6,6 +6,14 @@ function getToken(): string | null {
   try { return localStorage.getItem("auth_token"); } catch { return null; }
 }
 
+function qs(params?: Record<string, string | undefined>): string {
+  if (!params) return "";
+  const parts = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== "")
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v!)}`);
+  return parts.length ? `?${parts.join("&")}` : "";
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const token = getToken();
@@ -75,4 +83,10 @@ export const api = {
   aiComposeWhatsapp: (data: { lead: any; intent: string }) => request<{ body: string }>("POST", "/ai/whatsapp", data),
   aiCallScript: (data: { lead: any; goal: string }) => request<any>("POST", "/ai/call", data),
   aiImage: (data: { prompt: string; size?: string }) => request<{ image: string }>("POST", "/ai/image", data),
+
+  // Conversations (Phase 0 — one thread per contact)
+  getConversations: (params?: { status?: string; sla?: string }) => request<any[]>("GET", `/conversations${qs(params)}`),
+  getConversation: (id: string) => request<{ conversation: any; events: any[] }>("GET", `/conversations/${id}`),
+  addConversationNote: (id: string, content: string) => request<any>("POST", `/conversations/${id}/events`, { content }),
+  setConversationStatus: (id: string, status: string) => request<any>("POST", `/conversations/${id}/status`, { status }),
 };
