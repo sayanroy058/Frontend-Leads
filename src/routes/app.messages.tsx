@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MessageCircle, Plus, X, Sparkles, Send, Loader2, Wand2, CheckCheck, Clock, Inbox, Reply } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/api/client";
-import { useLeads, updateLeadStatus, type Lead } from "@/lib/leads-client";
+import { useLeads, type Lead } from "@/lib/leads-client";
 
 export const Route = createFileRoute("/app/messages")({
   component: WhatsappStudio,
@@ -11,13 +11,17 @@ export const Route = createFileRoute("/app/messages")({
 
 const intents = ["Quick check-in", "Pricing follow-up", "Demo reminder", "Re-engage"];
 
-type Status = "draft" | "sent" | "delivered" | "read" | "replied" | "failed";
+type Status = "draft" | "sent" | "delivered" | "read" | "replied" | "received" | "failed";
 
 interface Row {
   id: string;
   lead_id: string | null;
   body: string;
   status: Status;
+  direction?: string | null;
+  from_number?: string | null;
+  to_number?: string | null;
+  acknowledged_at?: string | null;
   sent_at: string | null;
   delivered_at: string | null;
   read_at: string | null;
@@ -36,12 +40,17 @@ function WhatsappStudio() {
   useEffect(() => { refresh(); }, []);
 
   const groups = useMemo(() => {
-    const g: Record<string, Row[]> = { draft: [], sent: [], delivered: [], read: [], replied: [] };
-    for (const r of rows) (g[r.status === "failed" ? "draft" : r.status] ??= []).push(r);
+    const g: Record<string, Row[]> = { received: [], draft: [], sent: [], delivered: [], read: [], replied: [] };
+    // Inbound (received) messages get their own lane; failed drafts stay as drafts.
+    for (const r of rows) {
+      if (r.direction === "inbound" || r.status === "received") (g.received ??= []).push(r);
+      else (g[r.status === "failed" ? "draft" : r.status] ??= []).push(r);
+    }
     return g;
   }, [rows]);
 
   const lanes: { key: string; label: string; tint: string; Icon: typeof Send }[] = [
+    { key: "received", label: "Inbox", tint: "gradient-sky", Icon: Inbox },
     { key: "draft", label: "Drafts", tint: "gradient-soft", Icon: Wand2 },
     { key: "sent", label: "Sent", tint: "gradient-sky", Icon: Send },
     { key: "delivered", label: "Delivered", tint: "gradient-mint", Icon: Inbox },
@@ -61,7 +70,7 @@ function WhatsappStudio() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
         {lanes.map(({ key, label, tint, Icon }) => (
           <div key={key} className="flex min-h-[280px] flex-col rounded-2xl border border-border bg-card/70 p-3 shadow-soft">
             <div className="mb-3 flex items-center justify-between px-1">
@@ -74,10 +83,11 @@ function WhatsappStudio() {
             <div className="space-y-2">
               {(groups[key] ?? []).map((r) => {
                 const lead = leads.find((l) => l.id === r.lead_id);
+                const inbound = r.direction === "inbound" || r.status === "received";
                 return (
-                  <div key={r.id} className="rounded-xl border border-border bg-background p-3">
+                  <div key={r.id} className={`rounded-xl border border-border p-3 ${inbound ? "bg-card" : "bg-background"}`}>
                     <div className="flex items-center gap-2">
-                      <div className="grid h-7 w-7 place-items-center rounded-full gradient-mint text-[10px] font-semibold">
+                      <div className={`grid h-7 w-7 place-items-center rounded-full text-[10px] font-semibold ${inbound ? "gradient-brand text-white" : "gradient-mint"}`}>
                         {lead?.name.split(" ").map((p) => p[0]).join("").slice(0,2)}
                       </div>
                       <div className="min-w-0 flex-1 text-xs">
@@ -85,14 +95,19 @@ function WhatsappStudio() {
                         <div className="truncate text-muted-foreground">{lead?.phone ?? ""}</div>
                       </div>
                     </div>
-                    <div className="mt-2 rounded-lg bg-success/10 p-2 text-xs leading-snug">{r.body}</div>
+                    <div className={`mt-2 rounded-lg p-2 text-xs leading-snug ${inbound ? "bg-sky/10" : "bg-success/10"}`}>{r.body}</div>
                     <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
                       <span><Clock className="mr-1 inline h-3 w-3" />{new Date(r.created_at).toLocaleTimeString()}</span>
-                      {r.status === "draft" && (
-                        <button onClick={() => sendOne(r, refresh, reloadLeads)} className="inline-flex items-center gap-1 rounded-md gradient-brand px-2 py-0.5 text-white">
-                          <Send className="h-3 w-3" /> Send
-                        </button>
-                      )}
+                      <span className="flex items-center gap-2">
+                        {inbound && r.acknowledged_at && (
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px]">Auto-acked</span>
+                        )}
+                        {r.status === "draft" && (
+                          <button onClick={() => sendOne(r, refresh, reloadLeads)} className="inline-flex items-center gap-1 rounded-md gradient-brand px-2 py-0.5 text-white">
+                            <Send className="h-3 w-3" /> Send
+                          </button>
+                        )}
+                      </span>
                     </div>
                   </div>
                 );
@@ -111,28 +126,14 @@ function WhatsappStudio() {
 }
 
 async function sendOne(r: Row, refresh: () => void, reloadLeads: () => void) {
-  const now = new Date().toISOString();
-  await api.updateWhatsappStatus({ id: r.id, status: "sent", sent_at: now });
-  refresh();
-  setTimeout(async () => {
-    await api.updateWhatsappStatus({ id: r.id, status: "delivered", delivered_at: new Date().toISOString() });
-    refresh();
-    setTimeout(async () => {
-      await api.updateWhatsappStatus({ id: r.id, status: "read", read_at: new Date().toISOString() });
-      refresh();
-      if (Math.random() > 0.6) {
-        setTimeout(async () => {
-          await api.updateWhatsappStatus({ id: r.id, status: "replied" });
-          refresh();
-        }, 1800);
-      }
-    }, 1300);
-  }, 700);
-  if (r.lead_id) {
-    await updateLeadStatus(r.lead_id, "contacted");
-    reloadLeads();
+  try {
+    await api.sendWhatsapp(r.id);
+    toast.success("WhatsApp message sent");
+  } catch (e) {
+    toast.error("Send failed", { description: (e as Error).message });
   }
-  toast.success("WhatsApp message sent");
+  refresh();
+  reloadLeads();
 }
 
 function Composer({ leads, onClose, onDone }: { leads: Lead[]; onClose: () => void; onDone: () => void }) {

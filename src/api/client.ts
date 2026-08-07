@@ -57,6 +57,8 @@ export const api = {
   getWhatsapps: () => request<any[]>("GET", "/messages/whatsapps"),
   insertWhatsapps: (data: any[]) => request("POST", "/messages/whatsapps", data),
   updateWhatsappStatus: (data: { id: string; status: string; sent_at?: string; delivered_at?: string; read_at?: string }) => request("POST", "/messages/whatsapps/status", data),
+  sendWhatsapp: (id: string) => request<any>("POST", "/messages/whatsapps/send", { id }),
+  sendWhatsappTo: (leadId: string, body: string) => request<any>("POST", "/messages/whatsapps/send", { lead_id: leadId, body }),
 
   // Calls
   getCallLogs: () => request<any[]>("GET", "/messages/calls"),
