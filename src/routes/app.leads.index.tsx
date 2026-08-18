@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Eye, FileSpreadsheet, Loader2, Trash2 } from "lucide-react";
-import { useLeads, type LeadStatus } from "@/lib/leads-client";
+import { Search, Eye, FileSpreadsheet, Loader2, Trash2, Download } from "lucide-react";
+import { useLeads, downloadLeadsCsv, type LeadStatus } from "@/lib/leads-client";
 import { api } from "@/api/client";
 
 export const Route = createFileRoute("/app/leads/")({
