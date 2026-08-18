@@ -67,10 +67,11 @@ function AIChat() {
     setPending(true);
     api.insertChatMessage({ role: "user", content: t });
     try {
-      const ctx = leads.slice(0, 80).map((l) => ({
+      // Send every lead so the model can answer about any of them — trimmed to
+      // the fields chat actually needs, to keep the prompt size reasonable.
+      const ctx = leads.map((l) => ({
         id: l.id, name: l.name, company: l.company, email: l.email, phone: l.phone,
-        city: l.city, status: l.status, score: l.score, value: l.value,
-        source: l.source, notes: l.notes,
+        city: l.city, status: l.status, score: l.score,
       }));
       const history = messages
         .filter((m) => m.id !== "m0")
