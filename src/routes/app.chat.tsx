@@ -10,6 +10,27 @@ export const Route = createFileRoute("/app/chat")({
 
 type Msg = { id: string; role: "user" | "assistant"; text: string; citations?: string[] };
 
+// "New chat" can't delete server rows (chat_messages has no per-session id,
+// and is shared/global), so instead we remember when the user last reset and
+// only ever show/load messages created after that point. Persisted so the
+// reset survives a refresh or switching tabs and coming back.
+const RESET_KEY = "ai_chat_reset_at";
+
+function getResetAt(): string | null {
+  try { return localStorage.getItem(RESET_KEY); } catch { return null; }
+}
+
+// chat_messages.created_at is written server-side as SQLite's
+// datetime('now') — "YYYY-MM-DD HH:MM:SS" (space, no zone, UTC). Our marker
+// must match that exact shape, or a string comparison against it is
+// unreliable (e.g. the space in "18 12:00:00" sorts before the "T" in
+// "18T12:00:00.000Z", corrupting the ordering even when the real times are
+// fine). new Date().toISOString() is already UTC, so a straight reformat is
+// safe with no timezone conversion involved.
+function sqliteNow(): string {
+  return new Date().toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
+}
+
 const suggested = [
   "Who are my top 5 leads to call today?",
   "Which leads asked for pricing?",
@@ -32,14 +53,18 @@ function AIChat() {
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: 9e9, behavior: "smooth" }); }, [messages, pending]);
 
-  // Load chat history
+  // Load chat history — anything at or before the last "New chat" reset is
+  // excluded, so a reset stays cleared across refresh / tab switches even
+  // though the underlying rows are still in the database.
   useEffect(() => {
     (async () => {
-      const data = await api.getChatMessages() as { id: string; role: string; content: string; citations: string | null }[];
-      if (data && data.length) {
+      const data = (await api.getChatMessages()) as { id: string; role: string; content: string; citations: string | null; created_at: string }[];
+      const resetAt = getResetAt();
+      const visible = resetAt ? data.filter((m) => m.created_at > resetAt) : data;
+      if (visible && visible.length) {
         setMessages([
           { id: "m0", role: "assistant", text: "Welcome back. Continuing where we left off." },
-          ...data.map((m) => ({
+          ...visible.map((m) => ({
             id: m.id,
             role: m.role as "user" | "assistant",
             text: m.content,
@@ -51,6 +76,7 @@ function AIChat() {
   }, []);
 
   function newChat() {
+    try { localStorage.setItem(RESET_KEY, sqliteNow()); } catch { /* ignore */ }
     setMessages([
       { id: "m0", role: "assistant", text: "Hi — I'm your lead assistant. Ask me anything about your pipeline. I'll cite specific leads when I answer." },
     ]);
