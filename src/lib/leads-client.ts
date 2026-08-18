@@ -12,6 +12,47 @@ export interface Lead {
 
 export interface ActivityItem { id: string; type: string; text: string; when: string; }
 
+const EXPORT_COLUMNS: { key: keyof Lead; header: string }[] = [
+  { key: "name", header: "Name" },
+  { key: "email", header: "Email" },
+  { key: "phone", header: "Phone" },
+  { key: "company", header: "Company" },
+  { key: "city", header: "City" },
+  { key: "source", header: "Source" },
+  { key: "status", header: "Status" },
+  { key: "score", header: "Score" },
+  { key: "value", header: "Value" },
+  { key: "notes", header: "Notes" },
+  { key: "created_at", header: "Created" },
+];
+
+/** Quote a CSV field only when it needs it (comma, quote, or newline present). */
+function csvField(v: unknown): string {
+  const s = v === null || v === undefined ? "" : String(v);
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+export function leadsToCsv(leads: Lead[]): string {
+  const header = EXPORT_COLUMNS.map((c) => csvField(c.header)).join(",");
+  const rows = leads.map((l) => EXPORT_COLUMNS.map((c) => csvField(l[c.key])).join(","));
+  return [header, ...rows].join("\r\n");
+}
+
+/** Trigger a browser download of `leads` as a CSV file named `filename`. */
+export function downloadLeadsCsv(leads: Lead[], filename = "leads-export.csv") {
+  const csv = leadsToCsv(leads);
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" }); // BOM for Excel
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function useLeads() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
