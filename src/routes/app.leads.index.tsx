@@ -70,6 +70,13 @@ function AllLeads() {
     });
   }
 
+  function exportCsv() {
+    const rows = selected.size ? filtered.filter((l) => selected.has(l.id)) : filtered;
+    if (!rows.length) return;
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadLeadsCsv(rows, `leads-export-${stamp}.csv`);
+  }
+
   async function deleteSelected() {
     if (!selected.size) return;
     const ids = [...selected];
@@ -150,6 +157,14 @@ function AllLeads() {
                 Delete {selected.size} selected
               </button>
             )}
+            <button
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
+              title={selected.size ? `Export ${selected.size} selected lead(s)` : `Export ${filtered.length} lead(s)`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-1.5 text-xs hover:bg-accent disabled:opacity-60"
+            >
+              <Download className="h-3.5 w-3.5" /> Export CSV{selected.size > 0 ? ` (${selected.size})` : ""}
+            </button>
             <button
               onClick={reload}
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-1.5 text-xs hover:bg-accent"
