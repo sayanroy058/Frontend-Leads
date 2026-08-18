@@ -45,6 +45,13 @@ function EmailStudio() {
 
   const [sending, setSending] = useState<Set<string>>(new Set());
   const received = useMemo(() => emails.filter((e) => e.direction === "inbound"), [emails]);
+  // Whichever address the mail provider actually sent from/to most recently —
+  // avoids hardcoding a provider-specific address that goes stale if the
+  // backend's mail provider changes (e.g. AgentMail -> Gmail).
+  const inboxAddress = useMemo(() => {
+    const withAddr = emails.find((e) => e.from_email || e.to_email);
+    return withAddr?.direction === "inbound" ? withAddr.to_email : withAddr?.from_email ?? null;
+  }, [emails]);
 
   async function sendEmail(e: EmailRow) {
     setSending((s) => new Set(s).add(e.id));
@@ -96,7 +103,7 @@ function EmailStudio() {
               <Inbox className="h-3.5 w-3.5 text-foreground/80" />
             </span>
             <div className="text-sm font-semibold">Inbox</div>
-            <span className="text-xs text-muted-foreground">leads-test@agentmail.to</span>
+            {inboxAddress && <span className="text-xs text-muted-foreground">{inboxAddress}</span>}
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{received.length}</span>
