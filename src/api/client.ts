@@ -47,6 +47,7 @@ export const api = {
   getLead: (id: string) => request<any>("GET", `/leads/${id}`),
   updateLead: (id: string, data: any) => request<any>("PUT", `/leads/${id}`, data),
   deleteLead: (id: string) => request<any>("DELETE", `/leads/${id}`),
+  deleteLeadsBulk: (ids: string[]) => request<{ success: boolean; deleted: number }>("POST", "/leads/bulk-delete", { ids }),
   getActivityCounts: () => request<{ emails: number; whatsapps: number; calls: number; appts: number }>("GET", "/leads/activity/counts"),
   getActivityFeed: () => request<any[]>("GET", "/leads/activity/feed"),
 

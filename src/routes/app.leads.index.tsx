@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Search, Eye, FileSpreadsheet, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, Eye, FileSpreadsheet, Loader2, Trash2 } from "lucide-react";
 import { useLeads, type LeadStatus } from "@/lib/leads-client";
+import { api } from "@/api/client";
 
 export const Route = createFileRoute("/app/leads/")({
   component: AllLeads,
@@ -21,6 +22,8 @@ function AllLeads() {
   const { leads, loading, reload } = useLeads();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | LeadStatus>("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
@@ -42,6 +45,46 @@ function AllLeads() {
     for (const l of leads) t[l.status] = (t[l.status] ?? 0) + 1;
     return t;
   }, [leads]);
+
+  // Drop any selected ids that fell out of the current filter/result set.
+  useEffect(() => {
+    setSelected((prev) => {
+      const visible = new Set(filtered.map((l) => l.id));
+      const next = new Set([...prev].filter((id) => visible.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [filtered]);
+
+  const allSelected = filtered.length > 0 && filtered.every((l) => selected.has(l.id));
+  const someSelected = selected.size > 0 && !allSelected;
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(filtered.map((l) => l.id)));
+  }
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function deleteSelected() {
+    if (!selected.size) return;
+    const ids = [...selected];
+    if (!window.confirm(`Delete ${ids.length} lead${ids.length === 1 ? "" : "s"}? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      await api.deleteLeadsBulk(ids);
+      setSelected(new Set());
+      await reload();
+    } catch (e) {
+      window.alert(`Failed to delete leads: ${(e as Error).message}`);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -92,13 +135,28 @@ function AllLeads() {
             <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
             <div className="text-sm font-semibold">All leads</div>
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{filtered.length}</span>
+            {selected.size > 0 && (
+              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">{selected.size} selected</span>
+            )}
           </div>
-          <button
-            onClick={reload}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-1.5 text-xs hover:bg-accent"
-          >
-            <Loader2 className="h-3.5 w-3.5" /> Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            {selected.size > 0 && (
+              <button
+                onClick={deleteSelected}
+                disabled={deleting}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20 disabled:opacity-60"
+              >
+                {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                Delete {selected.size} selected
+              </button>
+            )}
+            <button
+              onClick={reload}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-1.5 text-xs hover:bg-accent"
+            >
+              <Loader2 className="h-3.5 w-3.5" /> Refresh
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           {loading ? (
@@ -109,6 +167,16 @@ function AllLeads() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
+                  <th className="px-4 py-2.5 text-left font-medium">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                      onChange={toggleAll}
+                      aria-label="Select all leads"
+                      className="h-4 w-4 rounded border-border accent-primary"
+                    />
+                  </th>
                   <th className="px-4 py-2.5 text-left font-medium">Lead</th>
                   <th className="px-4 py-2.5 text-left font-medium">Company / City</th>
                   <th className="px-4 py-2.5 text-left font-medium">Phone</th>
@@ -122,7 +190,16 @@ function AllLeads() {
               </thead>
               <tbody>
                 {filtered.map((l) => (
-                  <tr key={l.id} className="border-t border-border hover:bg-muted/30">
+                  <tr key={l.id} className={`border-t border-border hover:bg-muted/30 ${selected.has(l.id) ? "bg-primary/5" : ""}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(l.id)}
+                        onChange={() => toggleOne(l.id)}
+                        aria-label={`Select ${l.name}`}
+                        className="h-4 w-4 rounded border-border accent-primary"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="grid h-9 w-9 place-items-center rounded-xl gradient-brand text-xs font-semibold text-white">
@@ -163,7 +240,7 @@ function AllLeads() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">No leads found.</td>
+                    <td colSpan={10} className="px-4 py-10 text-center text-sm text-muted-foreground">No leads found.</td>
                   </tr>
                 )}
               </tbody>
