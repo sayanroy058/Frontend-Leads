@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Eye, FileSpreadsheet, Loader2, Trash2, Download } from "lucide-react";
-import { useLeads, downloadLeadsCsv, type LeadStatus } from "@/lib/leads-client";
+import { Search, Eye, FileSpreadsheet, Loader2, Trash2, Download, Wand2 } from "lucide-react";
+import { useLeads, downloadLeadsCsv, normalizePhone, type LeadStatus } from "@/lib/leads-client";
 import { api } from "@/api/client";
 
 export const Route = createFileRoute("/app/leads/")({
@@ -24,6 +24,7 @@ function AllLeads() {
   const [status, setStatus] = useState<"all" | LeadStatus>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [fixingPhones, setFixingPhones] = useState(false);
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
@@ -75,6 +76,42 @@ function AllLeads() {
     if (!rows.length) return;
     const stamp = new Date().toISOString().slice(0, 10);
     downloadLeadsCsv(rows, `leads-export-${stamp}.csv`);
+  }
+
+  // One-time cleanup: re-run the phone normalizer over existing leads so
+  // records saved before the parser fix (or entered with messy formatting)
+  // get reformatted, and unusable values (junk placeholders, too-short
+  // numbers) get cleared instead of sitting there looking like real data.
+  async function fixPhoneNumbers() {
+    const targets = (selected.size ? filtered.filter((l) => selected.has(l.id)) : leads).filter((l) => l.phone);
+    if (!targets.length) {
+      window.alert("No phone numbers to check in the current view.");
+      return;
+    }
+    if (!window.confirm(`Re-check formatting on ${targets.length} lead${targets.length === 1 ? "" : "s"} with a phone number? Unusable values will be cleared.`)) return;
+    setFixingPhones(true);
+    let changed = 0;
+    let cleared = 0;
+    try {
+      for (const l of targets) {
+        const result = normalizePhone(l.phone!);
+        const next = result.valid ? result.formatted : null;
+        if (next === l.phone) continue; // already in the right shape
+        await api.updateLead(l.id, { phone: next });
+        changed++;
+        if (!result.valid) cleared++;
+      }
+      await reload();
+      window.alert(
+        changed
+          ? `Updated ${changed} lead${changed === 1 ? "" : "s"}.${cleared ? ` ${cleared} had an unusable number and were cleared.` : ""}`
+          : "All phone numbers were already in the correct format."
+      );
+    } catch (e) {
+      window.alert(`Failed to fix phone numbers: ${(e as Error).message}`);
+    } finally {
+      setFixingPhones(false);
+    }
   }
 
   async function deleteSelected() {
@@ -157,6 +194,15 @@ function AllLeads() {
                 Delete {selected.size} selected
               </button>
             )}
+            <button
+              onClick={fixPhoneNumbers}
+              disabled={fixingPhones}
+              title={selected.size ? `Re-check phone formatting on ${selected.size} selected lead(s)` : "Re-check phone formatting on all leads"}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-1.5 text-xs hover:bg-accent disabled:opacity-60"
+            >
+              {fixingPhones ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+              Fix phone numbers{selected.size > 0 ? ` (${selected.size})` : ""}
+            </button>
             <button
               onClick={exportCsv}
               disabled={filtered.length === 0}

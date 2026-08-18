@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell } from "recharts";
 import { toast } from "sonner";
-import { useLeads, insertLeadsBulk, parseLeadFile, rowsToLeads, useActivity, type Lead, type LeadStatus } from "@/lib/leads-client";
+import { useLeads, insertLeadsBulk, parseLeadFile, rowsToLeads, normalizePhone, useActivity, type LeadStatus } from "@/lib/leads-client";
 
 export const Route = createFileRoute("/app/")({
   component: LeadsDashboard,
@@ -63,7 +63,7 @@ function LeadsDashboard() {
       toast.error("Couldn't read that file", { description: (err as Error).message });
       return;
     }
-    const newLeads = rowsToLeads(rows);
+    const { leads: newLeads, stats } = rowsToLeads(rows);
     if (!newLeads.length) {
       toast.error("Couldn't parse leads", { description: "Make sure your file has a header row with at least a name or email column." });
       return;
@@ -73,7 +73,13 @@ function LeadsDashboard() {
       toast.error("Upload failed", { description: error.message });
       return;
     }
-    toast.success(`Imported ${newLeads.length} leads`, { description: f.name });
+    if (stats.invalidPhones > 0) {
+      toast.success(`Imported ${stats.imported} leads`, {
+        description: `${f.name} — ${stats.invalidPhones} lead${stats.invalidPhones === 1 ? "" : "s"} had an unusable phone number and were imported without one.`,
+      });
+    } else {
+      toast.success(`Imported ${stats.imported} leads`, { description: f.name });
+    }
     reload();
   }
 
@@ -345,11 +351,17 @@ function AddLeadModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) { toast.error("Name is required"); return; }
+    const phoneInput = form.phone.trim();
+    const phone = phoneInput ? normalizePhone(phoneInput) : null;
+    if (phoneInput && !phone?.valid) {
+      toast.error("That phone number doesn't look valid", { description: "Double-check it, or leave the field blank." });
+      return;
+    }
     setBusy(true);
     const { error } = await insertLeadsBulk([{
       name: form.name.trim(),
       email: form.email.trim() || null,
-      phone: form.phone.trim() || null,
+      phone: phone?.formatted ?? null,
       company: form.company.trim() || null,
       city: form.city.trim() || null,
       source: form.source.trim() || "manual",
