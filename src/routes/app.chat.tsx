@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Send, Sparkles, User2, Loader2 } from "lucide-react";
+import { Bot, Send, Sparkles, User2, Loader2, Plus } from "lucide-react";
 import { useLeads } from "@/lib/leads-client";
 import { api } from "@/api/client";
 
@@ -50,6 +50,14 @@ function AIChat() {
     })();
   }, []);
 
+  function newChat() {
+    setMessages([
+      { id: "m0", role: "assistant", text: "Hi — I'm your lead assistant. Ask me anything about your pipeline. I'll cite specific leads when I answer." },
+    ]);
+    setInput("");
+    inputRef.current?.focus();
+  }
+
   async function send(text?: string) {
     const t = (text ?? input).trim();
     if (!t || pending) return;
@@ -64,7 +72,11 @@ function AIChat() {
         city: l.city, status: l.status, score: l.score, value: l.value,
         source: l.source, notes: l.notes,
       }));
-      const res = await api.aiChat({ question: t, leads: ctx });
+      const history = messages
+        .filter((m) => m.id !== "m0")
+        .slice(-10)
+        .map((m) => ({ role: m.role, content: m.text }));
+      const res = await api.aiChat({ question: t, leads: ctx, history });
       const asst: Msg = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -116,6 +128,13 @@ function AIChat() {
           <div className="hidden items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs text-success-foreground sm:flex">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> Connected
           </div>
+          <button
+            onClick={newChat}
+            disabled={pending}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium hover:bg-accent disabled:opacity-60"
+          >
+            <Plus className="h-3.5 w-3.5" /> New chat
+          </button>
         </div>
 
         <div ref={scrollRef} className="flex-1 space-y-5 overflow-y-auto p-5">

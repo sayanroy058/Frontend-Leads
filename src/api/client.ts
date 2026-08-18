@@ -78,7 +78,7 @@ export const api = {
   insertAppointment: (data: any) => request("POST", "/messages/appointments", data),
 
   // AI
-  aiChat: (data: { question: string; leads: any[] }) => request<{ text: string; citations: string[] }>("POST", "/ai/chat", data),
+  aiChat: (data: { question: string; leads: any[]; history?: { role: "user" | "assistant"; content: string }[] }) => request<{ text: string; citations: string[] }>("POST", "/ai/chat", data),
   aiComposeEmail: (data: { lead: any; tone: string; goal: string; senderName?: string }) => request<{ subject: string; body: string }>("POST", "/ai/email", data),
   aiComposeWhatsapp: (data: { lead: any; intent: string }) => request<{ body: string }>("POST", "/ai/whatsapp", data),
   aiCallScript: (data: { lead: any; goal: string }) => request<any>("POST", "/ai/call", data),
