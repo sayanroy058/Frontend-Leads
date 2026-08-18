@@ -37,7 +37,7 @@ function EmailStudio() {
   const [composing, setComposing] = useState(false);
 
   async function refresh() {
-    try { await api.syncInbox(); } catch { /* AgentMail not configured — show local mail only */ }
+    try { await api.syncInbox(); } catch { /* Gmail not configured — show local mail only */ }
     const data = await api.getEmails() as EmailRow[];
     if (data) setEmails(data);
   }
