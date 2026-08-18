@@ -5,9 +5,9 @@ import { useTheme } from "@/lib/theme";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Leadflow — AI-native lead management for modern teams" },
+      { title: "GradLead AI — AI-native lead management for modern teams" },
       { name: "description", content: "Upload leads in any format. Talk to them through AI email, WhatsApp, and calling. Generate creatives in one click." },
-      { property: "og:title", content: "Leadflow" },
+      { property: "og:title", content: "GradLead AI" },
       { property: "og:description", content: "AI-native lead management." },
     ],
   }),
@@ -23,7 +23,7 @@ function Landing() {
           <div className="grid h-8 w-8 place-items-center rounded-lg gradient-brand shadow-glow">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-semibold tracking-tight">Leadflow</span>
+          <span className="text-lg font-semibold tracking-tight">GradLead AI</span>
         </div>
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
           <a href="#features" className="hover:text-foreground">Features</a>
@@ -49,7 +49,7 @@ function Landing() {
           Every lead, <span className="text-gradient-brand">answered.</span>
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
-          Upload your leads in any format. Leadflow scores them, writes personalized emails and WhatsApp follow-ups,
+          Upload your leads in any format. GradLead AI scores them, writes personalized emails and WhatsApp follow-ups,
           generates creatives, and even calls them on your behalf — all from one dashboard.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -66,7 +66,7 @@ function Landing() {
             <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
             <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
             <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
-            <span className="ml-3 text-xs text-muted-foreground">leadflow.app / dashboard</span>
+            <span className="ml-3 text-xs text-muted-foreground">gradlead.ai / dashboard</span>
           </div>
           <div className="grid grid-cols-12 ring-grid">
             <aside className="col-span-3 hidden border-r border-border bg-sidebar p-4 md:block">
@@ -150,7 +150,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Leadflow. Crafted for ambitious teams.
+        © {new Date().getFullYear()} GradLead AI. Crafted for ambitious teams.
       </footer>
     </div>
   );

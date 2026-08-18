@@ -38,7 +38,7 @@ const swatches = [
 ];
 
 function fileBase(id: string) {
-  return `leadflow-${id}-${Date.now()}`;
+  return `gradlead-${id}-${Date.now()}`;
 }
 
 async function downloadImage(url: string, filename: string) {

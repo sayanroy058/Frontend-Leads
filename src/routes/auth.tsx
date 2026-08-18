@@ -8,10 +8,10 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Sign in or create your Leadflow account" },
-      { name: "description", content: "Log in to Leadflow or register a new workspace to upload leads and run AI email, WhatsApp and calling campaigns." },
-      { property: "og:title", content: "Sign in to Leadflow" },
-      { property: "og:description", content: "Log in or create a Leadflow account to manage your leads with AI." },
+      { title: "Sign in or create your GradLead AI account" },
+      { name: "description", content: "Log in to GradLead AI or register a new workspace to upload leads and run AI email, WhatsApp and calling campaigns." },
+      { property: "og:title", content: "Sign in to GradLead AI" },
+      { property: "og:description", content: "Log in or create a GradLead AI account to manage your leads with AI." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -45,7 +45,7 @@ function AuthPage() {
     try {
       if (mode === "register") {
         await register(name.trim(), email.trim(), password);
-        toast.success("Account created!", { description: "Welcome to Leadflow." });
+        toast.success("Account created!", { description: "Welcome to GradLead AI." });
       } else {
         await login(email.trim(), password);
         toast.success("Welcome back!");
@@ -65,7 +65,7 @@ function AuthPage() {
           <div className="grid h-9 w-9 place-items-center rounded-xl gradient-brand shadow-glow">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-semibold tracking-tight">Leadflow</span>
+          <span className="text-lg font-semibold tracking-tight">GradLead AI</span>
         </Link>
         <div>
           <h2 className="max-w-md text-4xl font-bold tracking-tight">
@@ -75,13 +75,13 @@ function AuthPage() {
             Upload CSV or Excel lead lists, chat with your data, and let AI handle email, WhatsApp and calls.
           </p>
         </div>
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Leadflow</p>
+        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} GradLead AI</p>
       </div>
 
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-soft">
           <h1 className="text-2xl font-semibold tracking-tight">
-            {mode === "login" ? "Sign in to Leadflow" : "Create your account"}
+            {mode === "login" ? "Sign in to GradLead AI" : "Create your account"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "login" ? "Welcome back — pick up where you left off." : "Start importing and working your leads in minutes."}
@@ -144,7 +144,7 @@ function AuthPage() {
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            {mode === "login" ? "New to Leadflow?" : "Already have an account?"}{" "}
+            {mode === "login" ? "New to GradLead AI?" : "Already have an account?"}{" "}
             <button
               onClick={() => setMode(mode === "login" ? "register" : "login")}
               className="font-medium text-foreground underline underline-offset-4"

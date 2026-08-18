@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-client";
 const SIDEBAR_KEY = "sidebar_collapsed";
 
 export const Route = createFileRoute("/app")({
-  head: () => ({ meta: [{ title: "Dashboard — Leadflow" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — GradLead AI" }] }),
   component: AppLayout,
 });
 
@@ -71,7 +71,7 @@ function AppLayout() {
             </div>
             {!collapsed && (
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold leading-none">Leadflow</div>
+                <div className="truncate text-sm font-semibold leading-none">GradLead AI</div>
                 <div className="mt-0.5 truncate text-[10px] uppercase tracking-wider text-muted-foreground">Workspace · {user?.name ?? "User"}</div>
               </div>
             )}
