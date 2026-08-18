@@ -49,9 +49,9 @@ function EmailStudio() {
   async function sendEmail(e: EmailRow) {
     setSending((s) => new Set(s).add(e.id));
     try {
-      await api.sendEmail(e.id);
+      const updated = (await api.sendEmail(e.id)) as EmailRow;
       if (e.lead_id) { await updateLeadStatus(e.lead_id, "contacted"); reloadLeads(); }
-      toast.success("Email sent from leads-test@agentmail.to");
+      toast.success(updated.from_email ? `Email sent from ${updated.from_email}` : "Email sent");
     } catch (err) {
       toast.error("Send failed", { description: (err as Error).message });
     } finally {
