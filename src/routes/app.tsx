@@ -1,8 +1,10 @@
 import { createFileRoute, Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { LayoutDashboard, Bot, Mail, MessageCircle, PhoneCall, ImageIcon, Sparkles, Search, Bell, Sun, Moon, LogOut, Loader2, Users, MessageSquare } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LayoutDashboard, Bot, Mail, MessageCircle, PhoneCall, ImageIcon, Sparkles, Search, Bell, Sun, Moon, LogOut, Loader2, Users, MessageSquare, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-client";
+
+const SIDEBAR_KEY = "sidebar_collapsed";
 
 export const Route = createFileRoute("/app")({
   head: () => ({ meta: [{ title: "Dashboard — Leadflow" }] }),
@@ -25,6 +27,17 @@ function AppLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, isLoading, logout } = useAuth();
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(SIDEBAR_KEY) === "1"; } catch { return false; }
+  });
+
+  function toggleSidebar() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(SIDEBAR_KEY, next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  }
 
   // Auth guard: redirect to /auth if not logged in
   useEffect(() => {
@@ -50,16 +63,18 @@ function AppLayout() {
 
   return (
     <div className="min-h-screen gradient-hero text-foreground">
-      <div className="grid min-h-screen grid-cols-[260px_1fr]">
-        <aside className="border-r border-sidebar-border bg-sidebar/70 backdrop-blur">
-          <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-5">
-            <div className="grid h-9 w-9 place-items-center rounded-xl gradient-brand shadow-glow">
+      <div className={`grid min-h-screen transition-[grid-template-columns] duration-200 ${collapsed ? "grid-cols-[72px_1fr]" : "grid-cols-[260px_1fr]"}`}>
+        <aside className="relative border-r border-sidebar-border bg-sidebar/70 backdrop-blur">
+          <div className={`flex h-16 items-center gap-2 border-b border-sidebar-border px-5 ${collapsed ? "justify-center px-2" : ""}`}>
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl gradient-brand shadow-glow">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <div>
-              <div className="text-sm font-semibold leading-none">Leadflow</div>
-              <div className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Workspace · {user?.name ?? "User"}</div>
-            </div>
+            {!collapsed && (
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold leading-none">Leadflow</div>
+                <div className="mt-0.5 truncate text-[10px] uppercase tracking-wider text-muted-foreground">Workspace · {user?.name ?? "User"}</div>
+              </div>
+            )}
           </div>
           <nav className="p-3">
             {nav.map((item) => {
@@ -69,22 +84,31 @@ function AppLayout() {
                 <Link
                   key={item.to}
                   to={item.to as "/app"}
-                  className={`mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
+                  title={collapsed ? item.label : undefined}
+                  className={`mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${collapsed ? "justify-center px-0" : ""} ${
                     active
                       ? "gradient-brand text-white shadow-glow"
                       : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && item.label}
                 </Link>
               );
             })}
           </nav>
 
+          <button
+            onClick={toggleSidebar}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="absolute -right-3 top-16 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-soft hover:bg-accent hover:text-foreground"
+          >
+            {collapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+          </button>
         </aside>
 
-        <main className="flex min-h-screen flex-col">
+        <main className="flex min-h-screen min-w-0 flex-col">
           <header className="flex h-16 items-center justify-between border-b border-border glass px-6">
             <div className="flex flex-1 items-center gap-3">
               <div className="relative max-w-md flex-1">
@@ -116,7 +140,7 @@ function AppLayout() {
               </div>
             </div>
           </header>
-          <div className="flex-1 overflow-x-hidden p-6">
+          <div className="min-w-0 flex-1 overflow-x-hidden p-6">
             <Outlet />
           </div>
         </main>
