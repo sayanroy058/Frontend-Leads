@@ -68,7 +68,7 @@ function AIChat() {
     api.insertChatMessage({ role: "user", content: t });
     try {
       const ctx = leads.slice(0, 80).map((l) => ({
-        id: l.id, name: l.name, company: l.company, email: l.email,
+        id: l.id, name: l.name, company: l.company, email: l.email, phone: l.phone,
         city: l.city, status: l.status, score: l.score, value: l.value,
         source: l.source, notes: l.notes,
       }));
